@@ -2,7 +2,7 @@
 
 import random
 import tkinter as tk
-
+from agent import ModelBasedAgent
 
 # =========================================================
 # ENVIRONMENT
