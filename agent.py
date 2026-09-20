@@ -2,6 +2,8 @@
 from collections import deque
 import heapq
 import random
+import math
+from turtle import pos
 
 class GreedyGridAgent:
     """A simple agent that tries to move around systematically to clear the grid."""
@@ -342,7 +344,7 @@ class SearchAgent:
 
     def __init__(self):
         self.plan = []
-        self.active_algo = 'BFS'
+        self.active_algo = 'AStar'
 
     def bfs_search(self, start, goal, grid_size, walls):
         frontier = deque()
@@ -509,9 +511,133 @@ class SearchAgent:
                     walls
                 )
 
+            elif self.active_algo == 'AStar':
+                self.plan = self.astar_search(
+                    start,
+                    goal,
+                    walls,
+                    grid_size,
+                    'manhattan'
+    )
+    
             # If no path was found
             if not self.plan:
                 return 'Stay'
 
         # Execute the first action in the plan
         return self.plan.pop(0)
+
+    def manhattan_distance(self, pos, goal):
+        return abs(pos[0] - goal[0]) + abs(pos[1] - goal[1])
+
+    def euclidean_distance(self, pos, goal):
+        return math.sqrt(
+            (pos[0] - goal[0]) ** 2 +
+            (pos[1] - goal[1]) ** 2
+    )
+
+    def astar_search(
+        self,
+        start_pos,
+        goal_pos,
+        walls,
+        grid_size,
+        heuristic_type='manhattan'
+):
+        frontier = []
+        reached_states = set()
+
+        # Calculate heuristic for the starting position
+        if heuristic_type == 'manhattan':
+            h_cost = self.manhattan_distance(
+                start_pos,
+                goal_pos
+            )
+        else:
+            h_cost = self.euclidean_distance(
+                start_pos,
+                goal_pos
+            )
+
+        # Starting node has travelled 0 steps
+        g_cost = 0
+
+        # A* formula: f(n) = g(n) + h(n)
+        f_cost = g_cost + h_cost
+
+        # Add starting node to priority queue
+        heapq.heappush(
+            frontier,
+            (f_cost, g_cost, start_pos, [])
+        )
+
+        while frontier:
+
+            # Get node with lowest f(n)
+            f_cost, g_cost, current_pos, path_taken = heapq.heappop(
+                frontier
+            )
+
+            # Check if goal is reached
+            if current_pos == goal_pos:
+                return path_taken
+
+            # Remember that this state was explored
+            reached_states.add(current_pos)
+
+            x, y = current_pos
+
+            # Four possible movements
+            neighbors = [
+                ((x, y + 1), 'Up'),
+                ((x, y - 1), 'Down'),
+                ((x - 1, y), 'Left'),
+                ((x + 1, y), 'Right')
+            ]
+
+            # Explore neighbours
+            for next_pos, action in neighbors:
+
+                if (
+                    0 <= next_pos[0] < grid_size[0]
+                    and 0 <= next_pos[1] < grid_size[1]
+                    and next_pos not in walls
+                    and next_pos not in reached_states
+                ):
+
+                    # Cost of reaching the neighbour
+                    new_g_cost = g_cost + 1
+
+                    # Estimate distance from neighbour to goal
+                    if heuristic_type == 'manhattan':
+                        new_h_cost = self.manhattan_distance(
+                            next_pos,
+                            goal_pos
+                        )
+                    else:
+                        new_h_cost = self.euclidean_distance(
+                            next_pos,
+                            goal_pos
+                        )
+
+                    # A* formula
+                    new_f_cost = new_g_cost + new_h_cost
+
+                    # Add neighbour to priority queue
+                    heapq.heappush(
+                        frontier,
+                        (
+                            new_f_cost,
+                            new_g_cost,
+                            next_pos,
+                            path_taken + [action]
+                        )
+                    )
+
+        # No path found
+        return None
+
+agent = SearchAgent()
+
+print(agent.manhattan_distance((0, 0), (3, 4)))
+print(agent.euclidean_distance((0, 0), (3, 4)))
